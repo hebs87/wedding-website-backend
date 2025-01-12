@@ -52,6 +52,48 @@ class Invitation(TimeStampedModel):
 
         return invitation
 
+    def get_invitation_guest(self, guest_uuid):
+        """ Get a guest for an invitation by guest_uuid """
+        try:
+            guest = self.guests.get(guest_uuid=guest_uuid)
+        except:
+            guest = None
+
+        return guest
+
+    def process_invitation_response(self, data):
+        """ Process the response to an invitation and update the details for each associated guest """
+        # Import here to prevent circular import error
+        from .forms import InvitationForm, GuestForm
+
+        # Return error if there is no invitation or guests data
+        invitation_data = data.get('invitation', {})
+        guests_data = data.get('guests', [])
+        if not invitation_data or not guests_data:
+            return False, 'Missing invitation or guests data'
+
+        # Return error if invitation has already been responded to
+        if self.responded:
+            return False, 'It looks like you\'ve already responded to this invitation'
+
+        # Update details for each associated guest
+        for guest_data in guests_data:
+            guest_uuid = guest_data.get('guest_uuid', '')
+            try:
+                guest = self.get_invitation_guest(guest_uuid=guest_uuid)
+                guest_form = GuestForm(instance=guest, data=guest_data)
+                guest_form.save()
+            except:
+                return False, 'Sorry, we were unable to update the details for some guests, please try again'
+
+        try:
+            invitation_form = InvitationForm(instance=self, data=invitation_data)
+            invitation_form.save()
+        except:
+            return False, 'Sorry, we were unable to update the details for this invitation, please try again'
+
+        return True, ''
+
 
 class Guest(TimeStampedModel):
     """

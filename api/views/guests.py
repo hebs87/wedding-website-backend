@@ -16,12 +16,18 @@ def invitation(request, **kwargs):
     POST - Allow user to respond to the invitation, and confirm the attendance and song for each guest
     """
     code = kwargs.get('code', '')
+    data = request.data
     temp_invitation = Invitation()
     success_data = {'success': True}
 
     matching_invitation = temp_invitation.get_invitation(code=code)
     if not matching_invitation:
-        return error_message(message='Sorry, we can\'t find an invitation with that code.')
+        return error_message(message='Sorry, we can\'t find an invitation with that code')
+
+    if request.method == 'POST':
+        success, error = matching_invitation.process_invitation_response(data=data)
+        if not success:
+            return error_message(message=error)
 
     # Same response for GET and POST
     invitation_data = InvitationSerializer(matching_invitation).data
