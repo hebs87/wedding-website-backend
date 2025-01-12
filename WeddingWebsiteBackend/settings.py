@@ -11,16 +11,17 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import environ
+import os
 from pathlib import Path
+import requests
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Configure env
 env = environ.Env(DEBUG=(bool, False))
 environ.Env.read_env(env_file=os.path.join(BASE_DIR, '.env'))
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -33,9 +34,7 @@ DEBUG = env.bool('DEBUG', default=False)
 
 ALLOWED_HOSTS = env('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',')
 
-
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -43,6 +42,18 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'django_cleanup.apps.CleanupConfig',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'corsheaders',
+    'storages',
+    'django_mysql',
+
+    'accounts',
+    'api',
+    'guests',
+    'memories',
 ]
 
 MIDDLEWARE = [
@@ -76,10 +87,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'WeddingWebsiteBackend.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE':  env('DB_ENGINE', default=''),
@@ -92,10 +101,20 @@ DATABASES = {
     },
 }
 
+# REST framework setup
+REST_FRAMEWORK = {
+    # Use Django's standard `django.contrib.auth` permissions,
+    # or allow read-only access for unauthenticated users.
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated'
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -111,10 +130,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
@@ -123,13 +140,80 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
+STATIC_URL = '/static/'
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'static'),
+)
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-STATIC_URL = 'static/'
+# Media Files Settings
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+DEFAULT_FILE_STORAGE = 'custom_storages.MediaStorage'
+
+# S3 BUCKET SETTINGS
+AWS_S3_OBJECT_PARAMETERS = {
+    'Expires': 'Thu, 31 Dec 2099 20:00:00 GMT',
+    'CacheControl': 'max-age=94608000',
+}
+AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', default='')
+AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='')
+AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID', default='')
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY', default='')
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+AWS_DEFAULT_ACL = None
+STORAGES = {
+    'default': {
+        'BACKEND': 'custom_storages.MediaStorage'
+    },
+    'staticfiles': {
+        'BACKEND': 'custom_storages.StaticStorage'
+    },
+    'OPTIONS': {
+        'access_key': AWS_ACCESS_KEY_ID,
+        'secret_key': AWS_SECRET_ACCESS_KEY,
+        'bucket_name': AWS_STORAGE_BUCKET_NAME,
+        'object_parameters': AWS_S3_OBJECT_PARAMETERS,
+        'default_acl': AWS_DEFAULT_ACL,
+        'region_name': AWS_S3_REGION_NAME,
+        'custom_domain': AWS_S3_CUSTOM_DOMAIN,
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Main User model - custom user https://wsvincent.com/django-custom-user-model-tutorial/
+AUTH_USER_MODEL = 'accounts.WeddingWebsiteBaseUser'
+
+# CORS HEADERS
+CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=False)
+
+# CSRF TRUSTED ORIGINS
+CSRF_TRUSTED_ORIGINS = env('CSRF_TRUSTED_ORIGINS', default='http://127.0.0.1,http://localhost').split(',')
+
+# SITE URLs
+ADMIN_PANEL = env('ADMIN_PANEL', default='')
+FRONTEND_DASHBOARD = env('FRONTEND_DASHBOARD', default='')
+
+# Testing
+TESTING = env.bool('TESTING', default=False)
+
+# TEST UTILITIES
+TEST_BASE_64_IMAGE = env('TEST_BASE_64_IMAGE', default='')
+TEST_UUID = env('TEST_UUID', default='')
+TEST_PASSWORD = env('TEST_PASSWORD', default='')
+
+# Environment
+ENVIRONMENT = env('ENVIRONMENT', default='')
+
+OMIT_HEALTHCHECK = env.bool('OMIT_HEALTHCHECK', default=False)
+if not OMIT_HEALTHCHECK:
+    try:
+        EC2_IP = requests.get("http://169.254.169.254/latest/meta-data/local-ipv4").text
+        ALLOWED_HOSTS.append(EC2_IP)
+    except requests.exceptions.RequestException:
+        pass
