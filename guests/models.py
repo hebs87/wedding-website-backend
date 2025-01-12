@@ -62,6 +62,7 @@ class Guest(TimeStampedModel):
     name = models.CharField(max_length=100)
     attending = models.BooleanField(default=False)
     song = models.CharField(max_length=255, blank=True, null=True)
+    meal = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = 'Guest'

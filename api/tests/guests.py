@@ -39,6 +39,11 @@ class GuestSerializerTest(TestCase):
         serializer = GuestSerializer(self.guest).data
         self.assertEqual(serializer.get('song', ''), self.guest.song)
 
+    def test_meal(self):
+        """ Confirm we return the 'meal' field """
+        serializer = GuestSerializer(self.guest).data
+        self.assertEqual(serializer.get('meal', ''), self.guest.meal)
+
 
 class InvitationSerializerTest(TestCase):
     """ Test suite for InvitationSerializer """
@@ -80,6 +85,7 @@ class InvitationSerializerTest(TestCase):
             self.assertEqual(guest.get('name', ''), self.guests[index].name)
             self.assertEqual(guest.get('attending', ''), self.guests[index].attending)
             self.assertEqual(guest.get('song', ''), self.guests[index].song)
+            self.assertEqual(guest.get('meal', ''), self.guests[index].meal)
 
 
 #                                              -- VIEW TESTS --
@@ -135,5 +141,6 @@ class InvitationTest(TestCase):
             self.assertEqual(guest.get('name', ''), self.guests[index].name)
             self.assertEqual(guest.get('attending', ''), self.guests[index].attending)
             self.assertEqual(guest.get('song', ''), self.guests[index].song)
+            self.assertEqual(guest.get('meal', ''), self.guests[index].meal)
 
     #                                                                                              Respond to invitation
