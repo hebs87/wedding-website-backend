@@ -45,7 +45,6 @@ INSTALLED_APPS = [
 
     'django_cleanup.apps.CleanupConfig',
     'rest_framework',
-    'rest_framework.authtoken',
     'corsheaders',
     'storages',
     'django_mysql',
@@ -106,11 +105,8 @@ REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated'
+        'rest_framework.permissions.AllowAny'
     ],
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
 }
 
 # Password validation
