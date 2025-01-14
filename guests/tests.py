@@ -3,7 +3,9 @@ from django.test import TestCase
 
 from data.seed_tests import seed_invitations
 from data.constants import RANDOM_STRING_LENGTH
+from .models import Guest
 from .forms import InvitationForm, GuestForm
+from api.serializers import GuestSerializer
 
 
 #                                              -- FORM TESTS --
@@ -199,12 +201,13 @@ class InvitationTest(TestCase):
         """ Confirm we update the invitation's guests on success """
         self.invitation_1.process_invitation_response(data=self.data)
         guests_data = self.data.get('guests', [])
+        excluded_fields = ['guest_uuid', 'meal']
+        fields = [field for field in GuestSerializer.Meta.fields if field not in excluded_fields]
         for index, guest in enumerate(self.invitation_1.guests.all()):
             guest_data = guests_data[index]
             guest.refresh_from_db()
-            self.assertEqual(guest.name, guest_data.get('name', ''))
-            self.assertTrue(guest.attending)
-            self.assertEqual(guest.song, guest_data.get('song', ''))
+            for field in fields:
+                self.assertEqual(getattr(guest, field), guest_data.get(field, ''))
 
     def test_process_invitation_success_updates_invitation(self):
         """ Confirm we update the invitation on success """
@@ -219,3 +222,68 @@ class InvitationTest(TestCase):
         success, error = self.invitation_1.process_invitation_response(data=self.data)
         self.assertTrue(success)
         self.assertEqual(error, '')
+
+
+class GuestTest(TestCase):
+    """ Test module for Guest model """
+
+    @classmethod
+    def setUpTestData(cls):
+        """ Initialise test data """
+        cls.temp_guest = Guest()
+        invitations = seed_invitations()
+        cls.invitation = invitations.first()
+        cls.invitation.responded = True
+        cls.invitation.save()
+        cls.invitation_guests = cls.invitation.guests.all()
+        cls.guest_1 = cls.invitation_guests.first()
+        cls.guest_2 = cls.invitation_guests.last()
+
+    #                                                                                 attending_guests(attending_status)
+    def test_attending_guests_attending_status_true_invitation_responded_false_returns_empty_queryset(self):
+        """ Confirm we return an empty queryset if invitation hasn't been responded to, if attending_status=True """
+        # Update all guests to attending=True but invitation to responded=False
+        self.invitation.responded = False
+        self.invitation.save()
+        self.invitation_guests.update(attending=True)
+        guests = self.temp_guest.attending_guests(attending_status=True)
+        self.assertFalse(guests.count())
+
+    def test_attending_guests_attending_status_true_no_results_returns_empty_queryset(self):
+        """ Confirm we return an empty queryset if no attending guests are found, if attending_status=True """
+        # All test guests have attending=False by default
+        guests = self.temp_guest.attending_guests(attending_status=True)
+        self.assertFalse(guests.count())
+
+    def test_attending_guests_attending_status_true_returns_attending_guests(self):
+        """ Confirm we only return attending guests, if attending_status=True """
+        # Update guest_2 to attending=True
+        self.guest_2.attending = True
+        self.guest_2.save()
+        guests = self.temp_guest.attending_guests(attending_status=True)
+        self.assertEqual(guests.count(), 1)
+        self.assertEqual(guests.first(), self.guest_2)
+
+    def test_attending_guests_attending_status_false_invitation_responded_false_returns_empty_queryset(self):
+        """ Confirm we return an empty queryset if invitation hasn't been responded to, if attending_status=False """
+        # Update invitation to responded=False, all guests already have attending=False
+        self.invitation.responded = False
+        self.invitation.save()
+        guests = self.temp_guest.attending_guests(attending_status=False)
+        self.assertFalse(guests.count())
+
+    def test_attending_guests_attending_status_false_no_results_returns_empty_queryset(self):
+        """ Confirm we return an empty queryset if no attending guests are found, if attending_status=False """
+        # Updating all guests to attending=True
+        self.invitation_guests.update(attending=True)
+        guests = self.temp_guest.attending_guests(attending_status=False)
+        self.assertFalse(guests.count())
+
+    def test_attending_guests_attending_status_false_returns_not_attending_guests(self):
+        """ Confirm we only return guests who are not attending, if attending_status=False """
+        # Update guest_2 to attending=True
+        self.guest_2.attending = True
+        self.guest_2.save()
+        guests = self.temp_guest.attending_guests(attending_status=False)
+        self.assertEqual(guests.count(), 1)
+        self.assertEqual(guests.first(), self.guest_1)

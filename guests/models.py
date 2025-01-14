@@ -112,3 +112,8 @@ class Guest(TimeStampedModel):
 
     def __str__(self):
         return f'{self.name} - {self.attending}'
+
+    @staticmethod
+    def attending_guests(attending_status):
+        """ Get list of guests matching the attending status, for responded invitations """
+        return Guest.objects.filter(attending=attending_status, invitation__responded=True)
