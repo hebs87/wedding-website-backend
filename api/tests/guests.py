@@ -1,6 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 
+from guests.models import Guest
 from api.serializers import GuestSerializer, InvitationSerializer
 from data.seed_tests import seed_invitations
 
@@ -76,16 +77,17 @@ class InvitationSerializerTest(TestCase):
         self.assertEqual(serializer.get('additional_info', ''), self.invitation.additional_info)
 
     def test_guests(self):
-        """ Confirm we return the 'test_guests' field """
+        """ Confirm we return the 'guests' field """
         serializer = InvitationSerializer(self.invitation).data
         guests = serializer.get('guests', [])
         self.assertTrue(len(guests))
+        fields = GuestSerializer.Meta.fields
         for index, guest in enumerate(guests):
-            self.assertEqual(guest.get('guest_uuid', ''), str(self.guests[index].guest_uuid))
-            self.assertEqual(guest.get('name', ''), self.guests[index].name)
-            self.assertEqual(guest.get('attending', ''), self.guests[index].attending)
-            self.assertEqual(guest.get('song', ''), self.guests[index].song)
-            self.assertEqual(guest.get('meal', ''), self.guests[index].meal)
+            for field in fields:
+                if field == 'guest_uuid':
+                    self.assertEqual(guest.get(field, ''), str(getattr(self.guests[index], field)))
+                else:
+                    self.assertEqual(guest.get(field, ''), getattr(self.guests[index], field))
 
 
 #                                              -- VIEW TESTS --
@@ -154,18 +156,23 @@ class InvitationTest(TestCase):
         invitation = response_json.get('invitation', {})
         guests = invitation.get('guests', [])
         # Check main invitation data
-        self.assertEqual(invitation.get('invitation_uuid', ''), str(self.invitation_1.invitation_uuid))
-        self.assertEqual(invitation.get('name', ''), self.invitation_1.name)
-        self.assertEqual(invitation.get('responded', ''), self.invitation_1.responded)
-        self.assertEqual(invitation.get('additional_info', ''), self.invitation_1.additional_info)
-        # Check guest data
+        invitation_fields = InvitationSerializer.Meta.fields
         self.assertTrue(len(guests))
+        for field in invitation_fields:
+            if field == 'guests':
+                continue
+            if field == 'invitation_uuid':
+                self.assertEqual(invitation.get(field, ''), str(getattr(self.invitation_1, field)))
+            else:
+                self.assertEqual(invitation.get(field, ''), getattr(self.invitation_1, field))
+        # Check guest data
+        guest_fields = GuestSerializer.Meta.fields
         for index, guest in enumerate(guests):
-            self.assertEqual(guest.get('guest_uuid', ''), str(self.invitation_1_guests[index].guest_uuid))
-            self.assertEqual(guest.get('name', ''), self.invitation_1_guests[index].name)
-            self.assertEqual(guest.get('attending', ''), self.invitation_1_guests[index].attending)
-            self.assertEqual(guest.get('song', ''), self.invitation_1_guests[index].song)
-            self.assertEqual(guest.get('meal', ''), self.invitation_1_guests[index].meal)
+            for field in guest_fields:
+                if field == 'guest_uuid':
+                    self.assertEqual(guest.get(field, ''), str(getattr(self.invitation_1_guests[index], field)))
+                else:
+                    self.assertEqual(guest.get(field, ''), getattr(self.invitation_1_guests[index], field))
 
     #                                                                                              Respond to invitation
     def test_respond_to_invitation_no_invitation_data_returns_error(self):
@@ -246,3 +253,123 @@ class InvitationTest(TestCase):
         self.invitation_1.refresh_from_db()
         self.assertTrue(self.invitation_1.responded)
         self.assertEqual(self.invitation_1.additional_info, invitation_data.get('additional_info', ''))
+
+
+class AttendingGuestsTest(TestCase):
+    """ Test suite for attending_guests view """
+
+    @classmethod
+    def setUpTestData(cls):
+        """ Initialise test data """
+        cls.temp_guest = Guest()
+        invitations = seed_invitations()
+        cls.invitation = invitations.first()
+        cls.invitation.responded = True
+        cls.invitation.save()
+        cls.invitation_guests = cls.invitation.guests.all()
+        cls.guest_1 = cls.invitation_guests.first()
+        cls.guest_2 = cls.invitation_guests.last()
+
+    #                                                                                                      Generic tests
+    def test_success(self):
+        """ Confirm we return a 200 status code on success """
+        response = client.get(
+            reverse('api:attending_guests'),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_success_returns_correct_guests_data(self):
+        """ Confirm we return the correct guests serialized data in the response """
+        response = client.get(
+            reverse('api:attending_guests'),
+            content_type='application/json',
+        )
+        response_json = response.json()
+        guests = response_json.get('guests', [])
+        fields = GuestSerializer.Meta.fields
+        for guest in guests:
+            for field in fields:
+                self.assertIn(field, guest)
+
+    #                                                                                                          Attending
+    def test_attending_status_true_invitation_responded_false_returns_empty_guests_list(self):
+        """ Confirm we return an empty guests list if invitation hasn't been responded to, if ?attending_status=True """
+        # Update all guests to attending=True but invitation to responded=False
+        self.invitation.responded = False
+        self.invitation.save()
+        self.invitation_guests.update(attending=True)
+        response = client.get(
+            f'{reverse("api:attending_guests")}?attending_status=True',
+            content_type='application/json',
+        )
+        response_json = response.json()
+        guests = response_json.get('guests', [])
+        self.assertEqual(guests, [])
+
+    def test_attending_status_true_no_results_returns_empty_guests_list(self):
+        """ Confirm we return an empty guests list if no attending guests are found, if ?attending_status=True """
+        # All test guests have attending=False by default
+        response = client.get(
+            f'{reverse("api:attending_guests")}?attending_status=True',
+            content_type='application/json',
+        )
+        response_json = response.json()
+        guests = response_json.get('guests', [])
+        self.assertEqual(guests, [])
+
+    def test_attending_status_true_returns_attending_guests(self):
+        """ Confirm we only return attending guests, if ?attending_status=True """
+        # Update guest_2 to attending=True
+        self.guest_2.attending = True
+        self.guest_2.save()
+        response = client.get(
+            f'{reverse("api:attending_guests")}?attending_status=True',
+            content_type='application/json',
+        )
+        response_json = response.json()
+        guests = response_json.get('guests', [])
+        self.assertEqual(len(guests), 1)
+        self.assertEqual(guests[0].get('guest_uuid'), str(self.guest_2.guest_uuid))
+
+    #                                                                                                      Not attending
+    def test_attending_status_false_invitation_responded_false_returns_empty_guests_list(self):
+        """
+        Confirm we return an empty guests list if invitation hasn't been responded to, if no attending_status param
+        """
+        # Update invitation to responded=False, all guests already have attending=False
+        self.invitation.responded = False
+        self.invitation.save()
+        response = client.get(
+            reverse('api:attending_guests'),
+            content_type='application/json',
+        )
+        response_json = response.json()
+        guests = response_json.get('guests', [])
+        self.assertEqual(guests, [])
+
+    def test_attending_status_false_no_results_returns_empty_guests_list(self):
+        """ Confirm we return an empty guests list if no attending guests are found, if no attending_status param """
+        # Updating all guests to attending=True
+        self.invitation_guests.update(attending=True)
+        response = client.get(
+            reverse('api:attending_guests'),
+            content_type='application/json',
+        )
+        response_json = response.json()
+        guests = response_json.get('guests', [])
+        self.assertEqual(guests, [])
+
+    def test_attending_status_false_returns_not_attending_guests(self):
+        """ Confirm we only return guests who are not attending, if no attending_status param """
+        # Update guest_2 to attending=True
+        self.guest_2.attending = True
+        self.guest_2.save()
+        response = client.get(
+            reverse('api:attending_guests'),
+            content_type='application/json',
+        )
+        response_json = response.json()
+        guests = response_json.get('guests', [])
+        self.assertEqual(len(guests), 1)
+        self.assertEqual(guests[0].get('guest_uuid'), str(self.guest_1.guest_uuid))
