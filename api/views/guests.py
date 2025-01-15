@@ -53,3 +53,21 @@ def attending_guests(request):
     success_data['guests'] = guests_data
 
     return Response(success_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def responded_invitations(request):
+    """
+    GET:
+        - responded_status=True URL param - gets list of responded invitations
+        - No responded_status URL param - gets list of invitations pending response
+    """
+    responded_status = bool(request.GET.get('responded_status', False))
+    temp_guest = Invitation()
+    success_data = {'success': True}
+
+    invitations = temp_guest.responded_invitations(responded_status=responded_status)
+    invitations_data = InvitationSerializer(invitations, many=True).data
+    success_data['invitations'] = invitations_data
+
+    return Response(success_data, status=status.HTTP_200_OK)
