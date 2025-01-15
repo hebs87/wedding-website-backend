@@ -94,6 +94,11 @@ class Invitation(TimeStampedModel):
 
         return True, ''
 
+    @staticmethod
+    def responded_invitations(responded_status):
+        """ Get list of invitations matching the responded status """
+        return Invitation.objects.filter(responded=responded_status)
+
 
 class Guest(TimeStampedModel):
     """

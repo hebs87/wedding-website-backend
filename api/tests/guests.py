@@ -373,3 +373,101 @@ class AttendingGuestsTest(TestCase):
         guests = response_json.get('guests', [])
         self.assertEqual(len(guests), 1)
         self.assertEqual(guests[0].get('guest_uuid'), str(self.guest_1.guest_uuid))
+
+
+class RespondedInvitationsTest(TestCase):
+    """ Test suite for responded_invitations view """
+
+    @classmethod
+    def setUpTestData(cls):
+        """ Initialise test data """
+        cls.invitations = seed_invitations(invitation_count=2)
+        cls.invitation_1 = cls.invitations.first()
+        cls.invitation_2 = cls.invitations.last()
+
+    #                                                                                                      Generic tests
+    def test_success(self):
+        """ Confirm we return a 200 status code on success """
+        response = client.get(
+            reverse('api:responded_invitations'),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_success_returns_correct_invitations_data(self):
+        """ Confirm we return the correct invitations serialized data in the response """
+        response = client.get(
+            reverse('api:responded_invitations'),
+            content_type='application/json',
+        )
+        response_json = response.json()
+        invitations = response_json.get('invitations', [])
+        invitation_fields = InvitationSerializer.Meta.fields
+        for invitation in invitations:
+            # Check the invitation fields
+            for invitation_field in invitation_fields:
+                self.assertIn(invitation_field, invitation)
+            # Check the guest fields
+            guests = invitation.get('guests', [])
+            guest_fields = GuestSerializer.Meta.fields
+            for guest in guests:
+                for guest_field in guest_fields:
+                    self.assertIn(guest_field, guest)
+
+    #                                                                                                          Responded
+    def test_responded_status_true_no_results_returns_empty_invitations_list(self):
+        """
+        Confirm we return an empty invitations list if no responded invitations are found, if ?responded_status=True
+        """
+        # All test invitations have attending=False by default
+        response = client.get(
+            f'{reverse("api:responded_invitations")}?responded_status=True',
+            content_type='application/json',
+        )
+        response_json = response.json()
+        invitations = response_json.get('invitations', [])
+        self.assertEqual(invitations, [])
+
+    def test_responded_status_true_returns_attending_invitations(self):
+        """ Confirm we only return responded invitations, if ?responded_status=True """
+        # Update invitation_1 to responded=True
+        self.invitation_1.responded = True
+        self.invitation_1.save()
+        response = client.get(
+            f'{reverse("api:responded_invitations")}?responded_status=True',
+            content_type='application/json',
+        )
+        response_json = response.json()
+        invitations = response_json.get('invitations', [])
+        self.assertEqual(len(invitations), 1)
+        self.assertEqual(invitations[0].get('invitation_uuid'), str(self.invitation_1.invitation_uuid))
+
+    #                                                                                                   Pending response
+    def test_responded_status_false_no_results_returns_empty_invitations_list(self):
+        """
+        Confirm we return an empty invitations list if no invitations pending response are found,
+        if no responded_status param
+        """
+        # Update all invitations to responded=True
+        self.invitations.update(responded=True)
+        response = client.get(
+            reverse("api:responded_invitations"),
+            content_type='application/json',
+        )
+        response_json = response.json()
+        invitations = response_json.get('invitations', [])
+        self.assertEqual(invitations, [])
+
+    def test_responded_status_false_returns_pending_response_invitations(self):
+        """ Confirm we only return invitations pending response, if no responded_status param """
+        # Update invitation_1 to responded=True
+        self.invitation_1.responded = True
+        self.invitation_1.save()
+        response = client.get(
+            reverse("api:responded_invitations"),
+            content_type='application/json',
+        )
+        response_json = response.json()
+        invitations = response_json.get('invitations', [])
+        self.assertEqual(len(invitations), 1)
+        self.assertEqual(invitations[0].get('invitation_uuid'), str(self.invitation_2.invitation_uuid))

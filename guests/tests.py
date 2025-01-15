@@ -3,7 +3,7 @@ from django.test import TestCase
 
 from data.seed_tests import seed_invitations
 from data.constants import RANDOM_STRING_LENGTH
-from .models import Guest
+from .models import Invitation, Guest
 from .forms import InvitationForm, GuestForm
 from api.serializers import GuestSerializer
 
@@ -86,12 +86,13 @@ class InvitationTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         """ Initialise test data """
-        invitations = seed_invitations(invitation_count=2)
-        cls.invitation_1 = invitations.first()
+        cls.temp_invitation = Invitation()
+        cls.invitations = seed_invitations(invitation_count=2)
+        cls.invitation_1 = cls.invitations.first()
         cls.invitation_1_guests = cls.invitation_1.guests.all()
         cls.invitation_1_guest = cls.invitation_1_guests.first()
-        invitation_2 = invitations.last()
-        cls.invitation_2_guest = invitation_2.guests.first()
+        cls.invitation_2 = cls.invitations.last()
+        cls.invitation_2_guest = cls.invitation_2.guests.first()
         cls.data = {
             'invitation': {
                 'invitation_uuid': str(cls.invitation_1.invitation_uuid),
@@ -222,6 +223,41 @@ class InvitationTest(TestCase):
         success, error = self.invitation_1.process_invitation_response(data=self.data)
         self.assertTrue(success)
         self.assertEqual(error, '')
+
+    #                                                                            responded_invitations(responded_status)
+    def test_responded_invitations_responded_status_true_no_results_returns_empty_queryset(self):
+        """ Confirm we return an empty queryset if no responded invitations are found, if responded_status=True """
+        invitations = self.temp_invitation.responded_invitations(responded_status=True)
+        self.assertFalse(invitations.count())
+
+    def test_responded_invitations_responded_status_true_returns_responded_invitations(self):
+        """ Confirm we only return responded invitations, if responded_status=True """
+        # Update invitation_1 to responded=True
+        self.invitation_1.responded = True
+        self.invitation_1.save()
+        invitations = self.temp_invitation.responded_invitations(responded_status=True)
+        # invitation_1 should be the only responded invitation
+        self.assertEqual(invitations.count(), 1)
+        self.assertEqual(invitations.first(), self.invitation_1)
+
+    def test_responded_invitations_responded_status_false_no_results_returns_empty_queryset(self):
+        """
+        Confirm we return an empty queryset if no invitations pending response are found, if responded_status=False
+        """
+        # Update all invitations to responded=True
+        self.invitations.update(responded=True)
+        invitations = self.temp_invitation.responded_invitations(responded_status=False)
+        self.assertFalse(invitations.count())
+
+    def test_responded_invitations_responded_status_false_returns_pending_response_invitations(self):
+        """ Confirm we only return invitations pending response, if responded_status=False """
+        # Update invitation_1 to responded=True
+        self.invitation_1.responded = True
+        self.invitation_1.save()
+        invitations = self.temp_invitation.responded_invitations(responded_status=False)
+        # invitation_2 should be the only invitation pending response
+        self.assertEqual(invitations.count(), 1)
+        self.assertEqual(invitations.first(), self.invitation_2)
 
 
 class GuestTest(TestCase):
