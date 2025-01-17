@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import invitation, attending_guests, responded_invitations
+from .views import invitation, attending_guests, responded_invitations, pictures
 
 
 app_name = 'api'
@@ -10,4 +10,7 @@ urlpatterns = [
     path('invitation/<str:code>', invitation, name='invitation'),
     path('attending-guests', attending_guests, name='attending_guests'),
     path('responded-invitations', responded_invitations, name='responded_invitations'),
+
+    # memories views
+    path('pictures', pictures, name='pictures'),
 ]

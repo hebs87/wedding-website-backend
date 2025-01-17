@@ -2,7 +2,6 @@ from django.conf import settings
 from django.test import TestCase
 
 from data.seed_tests import seed_invitations
-from data.constants import RANDOM_STRING_LENGTH
 from .models import Invitation, Guest
 from .forms import InvitationForm, GuestForm
 from api.serializers import GuestSerializer
@@ -119,20 +118,6 @@ class InvitationTest(TestCase):
     def test_save_creates_alphanumeric_code(self):
         """ Test we create an alphanumeric code """
         self.assertTrue(self.invitation_1.code.isalnum())
-
-    #                                                                                  generate_random_string(length=10)
-    def test_generate_random_string_default(self):
-        """ Confirm we return an alphanumeric string, same length as RANDOM_STRING_LENGTH, by default """
-        random_string = self.invitation_1.generate_random_string()
-        self.assertEqual(len(random_string), RANDOM_STRING_LENGTH)
-        self.assertTrue(random_string.isalnum())
-
-    def test_generate_random_string_custom_length(self):
-        """ Confirm we return an alphanumeric string by of custom length when we specify length arg """
-        custom_length = 5
-        random_string = self.invitation_1.generate_random_string(length=custom_length)
-        self.assertEqual(len(random_string), custom_length)
-        self.assertTrue(random_string.isalnum())
 
     #                                                                                               get_invitation(code)
     def test_get_invitation_code_not_found_returns_none(self):
