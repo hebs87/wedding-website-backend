@@ -15,7 +15,6 @@ class Picture(TimeStampedModel):
     """
     picture_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     file = models.ImageField(upload_to='memories/', blank=False)
-    approved = models.BooleanField(default=False)
 
     @staticmethod
     def get_pictures():
