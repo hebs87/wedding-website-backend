@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import datetime
 import environ
 import os
 from pathlib import Path
@@ -45,6 +46,7 @@ INSTALLED_APPS = [
 
     'django_cleanup.apps.CleanupConfig',
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
     'storages',
     'django_mysql',
@@ -58,6 +60,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -105,8 +108,21 @@ REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny'
+        'rest_framework.permissions.IsAuthenticated'
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+
+# Simple JWT Configuration
+ACCESS_TOKEN_EXPIRED_AFTER_SECONDS = 43200  # 12 hours for access tokens
+REFRESH_TOKEN_EXPIRED_AFTER_SECONDS = 1728000  # 20 days for refresh tokens
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(seconds=ACCESS_TOKEN_EXPIRED_AFTER_SECONDS),
+    'REFRESH_TOKEN_LIFETIME': datetime.timedelta(seconds=REFRESH_TOKEN_EXPIRED_AFTER_SECONDS),
+    'ROTATE_REFRESH_TOKENS': True,
 }
 
 # Password validation
