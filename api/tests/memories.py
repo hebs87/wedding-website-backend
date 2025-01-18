@@ -60,6 +60,7 @@ class PicturesTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         """ Initialise test data """
+        cls.temp_picture = Picture()
         pictures = []
         for i in range(5):
             picture = {
@@ -85,6 +86,39 @@ class PicturesTest(TestCase):
             content_type='application/json',
         )
         self.assertEqual(response.status_code, 200)
+
+    #                                                                                                       Get pictures
+    def test_get_pictures_no_pictures_returns_empty_list(self):
+        """ Confirm we return an empty list if there are no Picture instances """
+        response = client.get(
+            reverse('api:pictures'),
+            content_type='application/json',
+        )
+        response_json = response.json()
+        pictures = response_json.get('pictures', [])
+        self.assertEqual(pictures, [])
+
+    def test_get_pictures_success_returns_correct_data(self):
+        """ Confirm we return a list of all pictures in the correct order (oldest to newest) on success """
+        self.temp_picture.create_pictures(picture_files=self.data.get('pictures', []))
+        response = client.get(
+            reverse('api:pictures'),
+            content_type='application/json',
+        )
+        response_json = response.json()
+        pictures = response_json.get('pictures', [])
+        expected_pictures = Picture.objects.all().order_by('created')
+        self.assertEqual(len(pictures), expected_pictures.count())
+        fields = PictureSerializer.Meta.fields
+        for index, picture in enumerate(pictures):
+            for field in fields:
+                self.assertIn(field, picture)
+                if field == 'picture_uuid':
+                    self.assertEqual(picture.get(field, ''), str(expected_pictures[index].picture_uuid))
+                else:
+                    picture_name = self.data.get('pictures', [])[index].get('name', '').split('.')[0]
+                    url = f'https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/memories/test/{picture_name}'
+                    self.assertIn(url, picture.get('url', ''))
 
     #                                                                                                    Upload pictures
     def test_upload_pictures_empty_pictures_list_returns_error(self):
@@ -131,5 +165,3 @@ class PicturesTest(TestCase):
             picture_name = self.data.get('pictures', [])[index].get('name', '').split('.')[0]
             url = f'https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/memories/test/{picture_name}'
             self.assertIn(url, picture.get('url', ''))
-
-    #                                                                                                       Get pictures
