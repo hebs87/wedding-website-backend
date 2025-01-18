@@ -56,6 +56,7 @@ def attending_guests(request):
 
 
 @api_view(['GET'])
+@permission_classes((AllowAny,))
 def responded_invitations(request):
     """
     GET:
