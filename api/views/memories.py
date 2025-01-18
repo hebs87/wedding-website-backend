@@ -19,12 +19,12 @@ def pictures(request):
     temp_picture = Picture()
     success_data = {'success': True}
 
-    uploaded_pictures = []
-
     if request.method == 'POST':
         uploaded_pictures, error = temp_picture.create_pictures(picture_files=picture_files)
         if error:
             return error_message(message=error)
+    else:
+        uploaded_pictures = temp_picture.get_pictures()
 
     # Same response for GET and POST
     uploaded_pictures_data = PictureSerializer(uploaded_pictures, many=True).data

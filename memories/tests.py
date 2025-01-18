@@ -29,6 +29,19 @@ class PictureTest(TestCase):
 
         super().tearDownClass()
 
+    #                                                                                                     get_pictures()
+    def test_get_pictures_no_pictures_returns_empty_queryset(self):
+        """ Confirm we return an empty queryset if there are no Picture instances """
+        pictures = self.temp_picture.get_pictures()
+        self.assertFalse(pictures.exists())
+
+    def test_get_pictures_returns_all_pictures(self):
+        """ Confirm we return a queryset of all Picture instances in the correct order (oldest to newest) """
+        self.temp_picture.create_pictures(picture_files=self.pictures)
+        pictures = self.temp_picture.get_pictures()
+        expected_pictures = Picture.objects.all().order_by('created')
+        self.assertQuerySetEqual(pictures, expected_pictures)
+
     #                                                                                     create_pictures(picture_files)
     def test_create_pictures_empty_picture_files_list_returns_error(self):
         """ Confirm we return an empty list and error message when passed an empty list """

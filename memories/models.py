@@ -18,6 +18,11 @@ class Picture(TimeStampedModel):
     approved = models.BooleanField(default=False)
 
     @staticmethod
+    def get_pictures():
+        """ Return all Picture instances, ordered by oldest to newest """
+        return Picture.objects.all().order_by('created')
+
+    @staticmethod
     def create_pictures(picture_files):
         """ Create Picture instances from a list of picture files """
         pictures, picture_uuids, has_errors, error = [], [], False, 'Please upload at least one picture'
