@@ -8,7 +8,7 @@ class GuestSerializer(serializers.ModelSerializer):
     """ A serializer for returning guest data """
     class Meta:
         model = Guest
-        fields = ('guest_uuid', 'name', 'attending', 'song', 'meal')
+        fields = ('guest_uuid', 'name', 'party_only', 'wedding', 'party')
 
 
 class InvitationSerializer(serializers.ModelSerializer):

@@ -8,7 +8,7 @@ class InvitationForm(ModelForm):
 
     class Meta:
         model = Invitation
-        fields = ['responded', 'additional_info']
+        fields = ('responded', 'additional_info')
 
 
 class GuestForm(ModelForm):
@@ -16,4 +16,4 @@ class GuestForm(ModelForm):
 
     class Meta:
         model = Guest
-        fields = ['name', 'attending', 'song']
+        fields = ('name', 'wedding', 'party')

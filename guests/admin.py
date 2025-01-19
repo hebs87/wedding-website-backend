@@ -10,8 +10,8 @@ from .models import Invitation, Guest
 class GuestInline(admin.TabularInline):
     """ Inline list of guests associated with an invitation """
     model = Guest
-    fields = ('name', 'meal', 'attending')
-    readonly_fields = ('attending',)
+    fields = ('name', 'party_only', 'wedding', 'party')
+    readonly_fields = ('wedding', 'party')
     extra = 1
 
 
@@ -52,7 +52,7 @@ class InvitationAdmin(admin.ModelAdmin):
     def get_link(self, obj):
         """ Custom field to get the invitation's RSVP link in the FE site """
         if obj.code:
-            return f'{settings.FRONTEND_DASHBOARD}rsvp?code={obj.code}'
+            return f'{settings.FRONTEND_DASHBOARD}{obj.code}'
         else:
             return 'No link'
     get_link.short_description = 'Invitation Link'
@@ -63,7 +63,7 @@ class InvitationAdmin(admin.ModelAdmin):
     def get_copy_link(self, obj):
         """ Custom button to copy the invitation's RSVP link in the FE site to the user's clipboard """
         if obj.code:
-            url = f'{settings.FRONTEND_DASHBOARD}rsvp?code={obj.code}'
+            url = f'{settings.FRONTEND_DASHBOARD}{obj.code}'
             btn_id = 'copy-link'
             btn_styles = 'margin: 0; padding: 0; color: #81d4fa; cursor: pointer;'
             return f'<p id="{btn_id}" data-clipboard-text={url} style="{btn_styles}">Copy link</p>'
@@ -81,25 +81,31 @@ class GuestAttendingStatusListFilter(admin.SimpleListFilter):
     def lookups(self, request, model_admin):
         """ Return filter list options """
         return [
-            ('yes', _('Yes')),
+            ('wedding_only', _('Wedding only')),
+            ('party_only', _('Party only')),
+            ('both', _('Both')),
             ('no', _('No')),
             ('pending', _('Pending')),
         ]
 
     def queryset(self, request, queryset):
         """ Return the queryset filtered by the filter value """
-        if self.value() == "yes":
-            return queryset.filter(attending=True)
-        if self.value() == "no":
-            return queryset.filter(attending=False, invitation__responded=True)
-        if self.value() == "pending":
-            return queryset.filter(attending=False, invitation__responded=False)
+        if self.value() == 'wedding_only':
+            return queryset.filter(wedding=True, party=False, invitation__responded=True)
+        if self.value() == 'party_only':
+            return queryset.filter(wedding=False, party=True, invitation__responded=True)
+        if self.value() == 'both':
+            return queryset.filter(wedding=True, party=True, invitation__responded=True)
+        if self.value() == 'none':
+            return queryset.filter(wedding=False, party=False, invitation__responded=True)
+        if self.value() == 'pending':
+            return queryset.filter(invitation__responded=False)
 
 
 class GuestAdmin(admin.ModelAdmin):
     """ Custom GuestAdmin model to allow viewing guests (read only) """
-    list_display = ('name', 'meal', 'get_attending_status')
-    list_filter = ('meal', GuestAttendingStatusListFilter)
+    list_display = ('name', 'party_only', 'wedding', 'party', 'get_attending_status')
+    list_filter = ('party_only', GuestAttendingStatusListFilter)
     raw_id_fields = ('invitation',)
 
     fieldsets = (
@@ -110,7 +116,7 @@ class GuestAdmin(admin.ModelAdmin):
         ),
         (
             'Guest Details',  {
-                'fields': ('name', 'meal'),
+                'fields': ('name',),
             }
         ),
         (
@@ -123,13 +129,7 @@ class GuestAdmin(admin.ModelAdmin):
 
     def get_attending_status(self, obj):
         """ Custom field to get the guest's attending status, based on the invitation's responded status' """
-        if obj.attending:
-            return 'Yes'
-        else:
-            if obj.invitation.responded:
-                return 'No'
-            else:
-                return 'Pending'
+        return obj.attending_status
     get_attending_status.short_description = 'Attending Status'
     get_attending_status.allow_tags = True
 
