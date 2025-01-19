@@ -87,11 +87,6 @@ class Invitation(TimeStampedModel):
 
         return True, ''
 
-    @staticmethod
-    def responded_invitations(responded_status):
-        """ Get list of invitations matching the responded status """
-        return Invitation.objects.filter(responded=responded_status)
-
 
 class Guest(TimeStampedModel):
     """
@@ -100,24 +95,30 @@ class Guest(TimeStampedModel):
     guest_uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     invitation = models.ForeignKey(Invitation, related_name='guests', on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
-    attending = models.BooleanField(default=False)
-    song = models.CharField(max_length=255, blank=True, null=True)
-    meal = models.BooleanField(default=False)
+    party_only = models.BooleanField(default=False)
+    wedding = models.BooleanField(default=False)
+    party = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = 'Guest'
         verbose_name_plural = 'Guests'
 
-    def __str__(self):
-        attending_status = 'Yes'
-        if not self.attending:
-            if self.invitation.responded:
-                attending_status = 'No'
+    @property
+    def attending_status(self):
+        """ Get the string representation of the guest's attending status """
+        attending_status = 'Pending'
+        if self.invitation.responded:
+            if self.wedding and self.party:
+                attending_status = 'Both'
+            elif self.wedding and not self.party:
+                attending_status = 'Wedding only'
+            elif not self.wedding and self.party:
+                attending_status = 'Party only'
             else:
-                attending_status = 'Pending'
-        return f'{self.name} - {attending_status}'
+                attending_status = 'No'
 
-    @staticmethod
-    def attending_guests(attending_status):
-        """ Get list of guests matching the attending status, for responded invitations """
-        return Guest.objects.filter(attending=attending_status, invitation__responded=True)
+        return attending_status
+
+
+    def __str__(self):
+        return f'{self.name} - {self.attending_status}'

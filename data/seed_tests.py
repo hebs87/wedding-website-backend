@@ -7,7 +7,6 @@ def seed_guests(invitation, guests_count=1):
         Guest.objects.create(
             invitation=invitation,
             name=f'Guest {i + 1}',
-            song=f'Song {i + 1}'
         )
 
 
