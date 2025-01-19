@@ -6,7 +6,7 @@ from .models import Picture
 
 # Register your models here.
 class PictureAdmin(admin.ModelAdmin):
-    """Admin to manage pictures"""
+    """ Custom PictureAdmin model to allow custom picture create and update functionality """
     model = Picture
     list_display = ('get_name', 'get_link', 'get_thumbnail')
     readonly_fields = ('get_link', 'get_thumbnail',)

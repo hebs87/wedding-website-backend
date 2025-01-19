@@ -14,29 +14,29 @@ class WeddingWebsiteBaseUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'first_name', 'last_name', 'role', 'is_active')
 
     add_fieldsets = (
-            (
-                'User Details', {
-                    'fields': ('first_name', 'last_name', 'username', 'email', 'role', 'password1', 'password2'),
-                }
-            ),
-        )
+        (
+            'User Details', {
+                'fields': ('first_name', 'last_name', 'username', 'email', 'role', 'password1', 'password2'),
+            }
+        ),
+    )
     fieldsets = (
-            (
-                'Personal info',  {
-                    'fields': ('first_name', 'last_name', 'username', 'email', 'role', 'password'),
-                }
-            ),
-            (
-                'Status',  {
-                    'fields': ('is_active',),
-                }
-            ),
-            (
-                'Important Dates', {
-                    'fields': ('last_login', 'date_joined')
-                }
-            )
+        (
+            'Personal info',  {
+                'fields': ('first_name', 'last_name', 'username', 'email', 'role', 'password'),
+            }
+        ),
+        (
+            'Status',  {
+                'fields': ('is_active',),
+            }
+        ),
+        (
+            'Important Dates', {
+                'fields': ('last_login', 'date_joined')
+            }
         )
+    )
     readonly_fields = ('date_joined', 'last_login')
 
 

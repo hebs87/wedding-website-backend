@@ -22,15 +22,16 @@ class Invitation(TimeStampedModel):
         verbose_name_plural = 'Invitations'
 
     def __str__(self):
-        return f'{self.name} - {self.responded}'
+        return f'{self.name} ({'' if self.responded else 'not '}responded)'
 
     def save(self, *args, **kwargs):
         """ Override save() to generate a unique code when creating a new Invitation """
-        code = generate_random_string()
-        while Invitation.objects.filter(code=code).exists():
+        if not self.code:
             code = generate_random_string()
+            while Invitation.objects.filter(code=code).exists():
+                code = generate_random_string()
 
-        self.code = code
+            self.code = code
 
         super(Invitation, self).save(*args, **kwargs)
 
@@ -108,7 +109,13 @@ class Guest(TimeStampedModel):
         verbose_name_plural = 'Guests'
 
     def __str__(self):
-        return f'{self.name} - {self.attending}'
+        attending_status = 'Yes'
+        if not self.attending:
+            if self.invitation.responded:
+                attending_status = 'No'
+            else:
+                attending_status = 'Pending'
+        return f'{self.name} - {attending_status}'
 
     @staticmethod
     def attending_guests(attending_status):
