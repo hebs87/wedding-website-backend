@@ -14,6 +14,13 @@ class GuestSerializer(serializers.ModelSerializer):
 class InvitationSerializer(serializers.ModelSerializer):
     """ A serializer for returning invitation data, including guests """
     guests = serializers.SerializerMethodField()
+    invitation_type = serializers.SerializerMethodField()
+
+    @staticmethod
+    def get_invitation_type(obj):
+        """ Method to redefine the invitation_type field """
+        guests = obj.guests.all()
+        return 'party_only' if all(guest.party_only for guest in guests) else 'wedding'
 
     @staticmethod
     def get_guests(obj):
@@ -22,7 +29,7 @@ class InvitationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Invitation
-        fields = ('invitation_uuid', 'name', 'responded', 'additional_info', 'guests')
+        fields = ('invitation_uuid', 'name', 'responded', 'additional_info', 'invitation_type', 'guests')
 
 
 class PictureSerializer(serializers.ModelSerializer):

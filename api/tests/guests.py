@@ -76,6 +76,13 @@ class InvitationSerializerTest(TestCase):
         serializer = InvitationSerializer(self.invitation).data
         self.assertEqual(serializer.get('additional_info', ''), self.invitation.additional_info)
 
+    def test_invitation_type(self):
+        """ Confirm we return the 'invitation_type' field """
+        serializer = InvitationSerializer(self.invitation).data
+        guests = self.invitation.guests.all()
+        invitation_type = 'party' if all(guest.party_only for guest in guests) else 'wedding'
+        self.assertEqual(serializer.get('invitation_type', ''), invitation_type)
+
     def test_guests(self):
         """ Confirm we return the 'guests' field """
         serializer = InvitationSerializer(self.invitation).data
@@ -161,8 +168,11 @@ class InvitationTest(TestCase):
         for field in invitation_fields:
             if field == 'guests':
                 continue
-            if field == 'invitation_uuid':
+            elif field == 'invitation_uuid':
                 self.assertEqual(invitation.get(field, ''), str(getattr(self.invitation_1, field)))
+            elif field == 'invitation_type':
+                invitation_type = 'party' if all(guest.party_only for guest in self.invitation_1_guests) else 'wedding'
+                self.assertEqual(invitation.get(field, ''), invitation_type)
             else:
                 self.assertEqual(invitation.get(field, ''), getattr(self.invitation_1, field))
         # Check guest data
