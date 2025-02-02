@@ -203,9 +203,8 @@ AUTH_USER_MODEL = 'accounts.WeddingWebsiteBaseUser'
 
 # CORS HEADERS
 CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=False)
-
-# CSRF TRUSTED ORIGINS
-CSRF_TRUSTED_ORIGINS = env('CSRF_TRUSTED_ORIGINS', default='http://127.0.0.1,http://localhost').split(',')
+if not CORS_ALLOW_ALL_ORIGINS:
+    CORS_ALLOWED_ORIGINS = env('CORS_ALLOWED_ORIGINS', default='127.0.0.1,localhost').split(',')
 
 # SITE URLs
 ADMIN_PANEL = env('ADMIN_PANEL', default='')
