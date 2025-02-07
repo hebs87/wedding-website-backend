@@ -57,10 +57,9 @@ class InvitationAdmin(admin.ModelAdmin):
     def get_copy_code(self, obj):
         """ Custom button to copy the invitation's RSVP code in the FE site to the user's clipboard """
         if obj.code:
-            url = f'{settings.FRONTEND_DASHBOARD}{obj.code}'
             btn_id = 'copy-code'
             btn_styles = 'margin: 0; padding: 0; color: #81d4fa; cursor: pointer;'
-            return f'<p id="{btn_id}" data-clipboard-text={url} style="{btn_styles}">Copy code</p>'
+            return f'<p id="{btn_id}" data-clipboard-text={obj.code} style="{btn_styles}">Copy code</p>'
         else:
             return 'No code'
     get_copy_code.short_description = 'Copy Code'

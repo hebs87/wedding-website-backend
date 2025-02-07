@@ -1,5 +1,5 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const copyCodeBtns = document.querySelectorAll("#copy-code");
+document.addEventListener('DOMContentLoaded', () => {
+  const copyCodeBtns = document.querySelectorAll('#copy-code');
 
   const copyCodeToClipboard = async (code) => {
     await navigator.clipboard.writeText(code);
@@ -8,6 +8,6 @@ document.addEventListener("DOMContentLoaded", () => {
   copyCodeBtns.forEach(btn => {
     // Get code from
     const code = btn.getAttribute('data-clipboard-text');
-    btn.addEventListener("click", () => copyCodeToClipboard(code))
+    btn.addEventListener('click', () => copyCodeToClipboard(code))
   });
 });
