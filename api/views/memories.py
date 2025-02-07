@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -10,14 +12,18 @@ from api.views.accounts import error_message
 
 @api_view(['GET', 'POST'])
 @permission_classes((AllowAny,))
-def pictures(request):
+def pictures(request, **kwargs):
     """
     GET - Return a list of all Picture instances
     POST - Allow user to upload a list of images
     """
+    code = kwargs.get('code', '')
     picture_files = request.data.get('pictures', [])
     temp_picture = Picture()
     success_data = {'success': True}
+
+    if not code.lower() == settings.GALLERY_CODE.lower():
+        return error_message(message='Sorry, that code isn\'t valid')
 
     if request.method == 'POST':
         uploaded_pictures, error = temp_picture.create_pictures(picture_files=picture_files)

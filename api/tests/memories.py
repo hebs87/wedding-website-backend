@@ -68,6 +68,8 @@ class PicturesTest(TestCase):
                 'name': f'picture-{i}.gif',
             }
             pictures.append(picture)
+        cls.valid_kwargs = {'code': settings.GALLERY_CODE}
+        cls.invalid_kwargs = {'code': 'invalid_code'}
         cls.data = {'pictures': pictures}
 
     @classmethod
@@ -79,10 +81,20 @@ class PicturesTest(TestCase):
         super().tearDownClass()
 
     #                                                                                                      Generic tests
+    def test_invalid_code_returns_error(self):
+        """ Confirm we return an error if the code is invalid """
+        response = client.get(
+            reverse('api:pictures', kwargs=self.invalid_kwargs),
+            content_type='application/json',
+        )
+        response_json = response.json()
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response_json.get('error_message', ''), 'Sorry, that code isn\'t valid')
+
     def test_success(self):
         """ Confirm we return a 200 status code on success """
         response = client.get(
-            reverse('api:pictures'),
+            reverse('api:pictures', kwargs=self.valid_kwargs),
             content_type='application/json',
         )
         self.assertEqual(response.status_code, 200)
@@ -91,7 +103,7 @@ class PicturesTest(TestCase):
     def test_get_pictures_no_pictures_returns_empty_list(self):
         """ Confirm we return an empty list if there are no Picture instances """
         response = client.get(
-            reverse('api:pictures'),
+            reverse('api:pictures', kwargs=self.valid_kwargs),
             content_type='application/json',
         )
         response_json = response.json()
@@ -102,7 +114,7 @@ class PicturesTest(TestCase):
         """ Confirm we return a list of all pictures in the correct order (oldest to newest) on success """
         self.temp_picture.create_pictures(picture_files=self.data.get('pictures', []))
         response = client.get(
-            reverse('api:pictures'),
+            reverse('api:pictures', kwargs=self.valid_kwargs),
             content_type='application/json',
         )
         response_json = response.json()
@@ -125,7 +137,7 @@ class PicturesTest(TestCase):
         """ Confirm we return an empty list and error message when passed an empty list """
         self.data['pictures'] = []
         response = client.post(
-            reverse('api:pictures'),
+            reverse('api:pictures', kwargs=self.valid_kwargs),
             content_type='application/json',
             data=self.data,
         )
@@ -139,7 +151,7 @@ class PicturesTest(TestCase):
         """ Confirm we create and return a list of the created pictures on success """
         self.assertFalse(Picture.objects.exists())
         response = client.post(
-            reverse('api:pictures'),
+            reverse('api:pictures', kwargs=self.valid_kwargs),
             content_type='application/json',
             data=self.data,
         )
@@ -154,7 +166,7 @@ class PicturesTest(TestCase):
     def test_upload_pictures_uploads_pictures_to_s3_bucket(self):
         """ Confirm we upload pictures to S3 bucket on success """
         response = client.post(
-            reverse('api:pictures'),
+            reverse('api:pictures', kwargs=self.valid_kwargs),
             content_type='application/json',
             data=self.data,
         )
