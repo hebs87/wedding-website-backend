@@ -10,5 +10,5 @@ urlpatterns = [
     path('invitation/<str:code>', invitation, name='invitation'),
 
     # memories views
-    path('pictures', pictures, name='pictures'),
+    path('pictures/<str:code>', pictures, name='pictures'),
 ]

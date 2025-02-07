@@ -1,7 +1,6 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 
-from guests.models import Guest
 from api.serializers import GuestSerializer, InvitationSerializer
 from data.seed_tests import seed_invitations
 

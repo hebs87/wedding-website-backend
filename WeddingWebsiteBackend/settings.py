@@ -220,6 +220,9 @@ if ENVIRONMENT == 'production':
 ADMIN_PANEL = env('ADMIN_PANEL', default='')
 FRONTEND_DASHBOARD = env('FRONTEND_DASHBOARD', default='')
 
+# GALLERY CODE
+GALLERY_CODE = env('GALLERY_CODE', default='')
+
 # Testing
 TESTING = env.bool('TESTING', default=False)
 
