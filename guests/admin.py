@@ -17,9 +17,9 @@ class GuestInline(admin.TabularInline):
 
 class InvitationAdmin(admin.ModelAdmin):
     """ Custom InvitationAdmin model to allow custom invitation create and update functionality """
-    list_display = ('name', 'get_link', 'responded', 'additional_info', 'get_copy_link')
+    list_display = ('name', 'get_code', 'responded', 'additional_info', 'get_copy_code')
     list_filter = ('responded',)
-    readonly_fields = ('get_link', 'get_copy_link', 'responded', 'additional_info')
+    readonly_fields = ('get_code', 'get_copy_code', 'responded', 'additional_info')
     inlines = (GuestInline,)
 
     add_fieldsets = (
@@ -32,7 +32,7 @@ class InvitationAdmin(admin.ModelAdmin):
     fieldsets = (
         (
             'Invitation Details',  {
-                'fields': ('name', 'get_link', 'get_copy_link', 'responded'),
+                'fields': ('name', 'get_code', 'get_copy_code', 'responded'),
             }
         ),
         (
@@ -42,35 +42,29 @@ class InvitationAdmin(admin.ModelAdmin):
         ),
     )
 
-
     class Media:
         js = (
             'js/admin-copy-link.js',
         )
 
-
-    def get_link(self, obj):
-        """ Custom field to get the invitation's RSVP link in the FE site """
-        if obj.code:
-            return f'{settings.FRONTEND_DASHBOARD}{obj.code}'
-        else:
-            return 'No link'
-    get_link.short_description = 'Invitation Link'
-    get_link.allow_tags = True
-
+    def get_code(self, obj):
+        """ Custom field to get the invitation's RSVP code in the FE site """
+        return obj.code if obj.code else 'No code'
+    get_code.short_description = 'Invitation Code'
+    get_code.allow_tags = True
 
     @mark_safe
-    def get_copy_link(self, obj):
-        """ Custom button to copy the invitation's RSVP link in the FE site to the user's clipboard """
+    def get_copy_code(self, obj):
+        """ Custom button to copy the invitation's RSVP code in the FE site to the user's clipboard """
         if obj.code:
             url = f'{settings.FRONTEND_DASHBOARD}{obj.code}'
-            btn_id = 'copy-link'
+            btn_id = 'copy-code'
             btn_styles = 'margin: 0; padding: 0; color: #81d4fa; cursor: pointer;'
-            return f'<p id="{btn_id}" data-clipboard-text={url} style="{btn_styles}">Copy link</p>'
+            return f'<p id="{btn_id}" data-clipboard-text={url} style="{btn_styles}">Copy code</p>'
         else:
-            return 'No link'
-    get_copy_link.short_description = 'Copy Link'
-    get_copy_link.allow_tags = True
+            return 'No code'
+    get_copy_code.short_description = 'Copy Code'
+    get_copy_code.allow_tags = True
 
 
 class GuestAttendingStatusListFilter(admin.SimpleListFilter):
@@ -125,7 +119,6 @@ class GuestAdmin(admin.ModelAdmin):
             }
         ),
     )
-
 
     def get_attending_status(self, obj):
         """ Custom field to get the guest's attending status, based on the invitation's responded status' """
