@@ -1,5 +1,4 @@
 from django.contrib import admin
-from django.conf import settings
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
@@ -19,6 +18,7 @@ class InvitationAdmin(admin.ModelAdmin):
     """ Custom InvitationAdmin model to allow custom invitation create and update functionality """
     list_display = ('name', 'get_code', 'responded', 'additional_info', 'get_copy_code')
     list_filter = ('responded',)
+    search_fields = ('name',)
     readonly_fields = ('get_code', 'get_copy_code', 'responded', 'additional_info')
     inlines = (GuestInline,)
 
@@ -48,14 +48,14 @@ class InvitationAdmin(admin.ModelAdmin):
         )
 
     def get_code(self, obj):
-        """ Custom field to get the invitation's RSVP code in the FE site """
+        """ Custom field to get the invitation's RSVP code """
         return obj.code if obj.code else 'No code'
     get_code.short_description = 'Invitation Code'
     get_code.allow_tags = True
 
     @mark_safe
     def get_copy_code(self, obj):
-        """ Custom button to copy the invitation's RSVP code in the FE site to the user's clipboard """
+        """ Custom button to copy the invitation's RSVP code to the user's clipboard """
         if obj.code:
             btn_id = 'copy-code'
             btn_styles = 'margin: 0; padding: 0; color: #81d4fa; cursor: pointer;'
@@ -97,8 +97,9 @@ class GuestAttendingStatusListFilter(admin.SimpleListFilter):
 
 class GuestAdmin(admin.ModelAdmin):
     """ Custom GuestAdmin model to allow viewing guests (read only) """
-    list_display = ('name', 'party_only', 'wedding', 'party', 'get_attending_status')
+    list_display = ('name', 'get_party_name', 'party_only', 'wedding', 'party', 'get_attending_status')
     list_filter = ('party_only', GuestAttendingStatusListFilter)
+    search_fields = ('name',)
     raw_id_fields = ('invitation',)
 
     fieldsets = (
@@ -118,6 +119,12 @@ class GuestAdmin(admin.ModelAdmin):
             }
         ),
     )
+
+    def get_party_name(self, obj):
+        """ Custom field to get the invitation's name """
+        return obj.invitation.name if obj.invitation.name else ''
+    get_party_name.short_description = 'Party Name'
+    get_party_name.allow_tags = True
 
     def get_attending_status(self, obj):
         """ Custom field to get the guest's attending status, based on the invitation's responded status' """
