@@ -22,7 +22,7 @@ def pictures(request, **kwargs):
     temp_picture = Picture()
     success_data = {'success': True}
 
-    if not code == settings.GALLERY_CODE:
+    if not code.lower() == settings.GALLERY_CODE.lower():
         return error_message(message='Sorry, that code isn\'t valid')
 
     if request.method == 'POST':
