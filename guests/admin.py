@@ -74,25 +74,24 @@ class GuestAttendingStatusListFilter(admin.SimpleListFilter):
     def lookups(self, request, model_admin):
         """ Return filter list options """
         return [
-            ('wedding_only', _('Wedding only')),
-            ('party_only', _('Party only')),
-            ('both', _('Both')),
-            ('no', _('No')),
+            ('wedding', _('Wedding')),
+            ('party', _('Party')),
+            ('none', _('None')),
             ('pending', _('Pending')),
         ]
 
     def queryset(self, request, queryset):
         """ Return the queryset filtered by the filter value """
-        if self.value() == 'wedding_only':
-            return queryset.filter(wedding=True, party=False, invitation__responded=True)
-        if self.value() == 'party_only':
-            return queryset.filter(wedding=False, party=True, invitation__responded=True)
-        if self.value() == 'both':
-            return queryset.filter(wedding=True, party=True, invitation__responded=True)
+        if self.value() == 'wedding':
+            return queryset.filter(wedding=True, invitation__responded=True)
+        if self.value() == 'party':
+            return queryset.filter(party=True, invitation__responded=True)
         if self.value() == 'none':
             return queryset.filter(wedding=False, party=False, invitation__responded=True)
         if self.value() == 'pending':
             return queryset.filter(invitation__responded=False)
+
+        return queryset
 
 
 class GuestAdmin(admin.ModelAdmin):
